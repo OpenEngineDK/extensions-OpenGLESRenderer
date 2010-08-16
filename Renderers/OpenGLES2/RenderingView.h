@@ -31,6 +31,7 @@ class RenderingView : public IRenderingView {
 private:
     GLuint program;
     IShaderResourcePtr shaderProgram;
+    Matrix<4,4,float> modelView;
 public:
     RenderingView();
     void Handle(RenderingEventArg arg);

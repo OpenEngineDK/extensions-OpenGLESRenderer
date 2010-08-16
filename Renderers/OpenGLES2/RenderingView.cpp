@@ -29,10 +29,17 @@ namespace OpenGLES2 {
         return shader;
     }
     
-    RenderingView::RenderingView() {}
+    RenderingView::RenderingView() : modelView(Matrix<4,4,float>()) {}
     
     void RenderingView::VisitTransformationNode(TransformationNode *node) {
+        Matrix<4,4,float> oldModel = modelView;        
+        Matrix<4,4,float> t = node->GetTransformationMatrix();
+        modelView = t;
+        shaderProgram->SetUniform("mv_matrix",t);
         node->VisitSubNodes(*this);
+        shaderProgram->SetUniform("mv_matrix",oldModel);
+        modelView = oldModel;
+        logger.info << modelView << logger.end;
     }
     
     void RenderingView::VisitMeshNode(MeshNode *node) {
@@ -54,9 +61,10 @@ namespace OpenGLES2 {
         
         //logger.info << indexBuffer->ToString() << logger.end;
           
-        glDrawArrays(GL_TRIANGLES, 0, count);
+        //glDrawArrays(GL_TRIANGLES, 0, count);
+        //glDrawArrays(GL_LINE_STRIP, 0, count);
         
-        //glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_BYTE, indexBuffer->GetData() + offset);
+        glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, indexBuffer->GetData() + offset);
         CHECK_FOR_GLES2_ERROR();
     }
     
