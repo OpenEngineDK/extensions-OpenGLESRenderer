@@ -33,8 +33,8 @@ namespace OpenGLES2 {
     }
     void RenderCanvas::Handle(Display::ResizeEventArg arg) { THROW(); }
 
-    unsigned int RenderCanvas::GetWidth() const { THROW(); }
-    unsigned int RenderCanvas::GetHeight() const { THROW(); }
+    unsigned int RenderCanvas::GetWidth() const { return width; }
+    unsigned int RenderCanvas::GetHeight() const { return height; }
     void RenderCanvas::SetWidth(const unsigned int width) { THROW(); }
     void RenderCanvas::SetHeight(const unsigned int height) { THROW(); }
     ITexture2DPtr RenderCanvas::GetTexture() { THROW(); }

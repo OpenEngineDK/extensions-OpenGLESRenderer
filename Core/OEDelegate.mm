@@ -20,7 +20,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 //
 //    [application.keyWindow addSubview:self.viewController.view];
     
-    NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:0.1 
+    NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:0.01 
                                                       target:self
                                                     selector:@selector(tick) 
                                                     userInfo:nil
@@ -30,7 +30,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // initialize
     _iOSEngine->DoStart();
 
-    NSLog(@"[] %@",[[NSBundle mainBundle] pathForResource:@"test" ofType:@"glsl"]);
+    
     
     //NSLog(@"Start ticking!");
     

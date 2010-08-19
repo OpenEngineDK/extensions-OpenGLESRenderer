@@ -6,13 +6,15 @@
 #include <Scene/MeshNode.h>
 #include <Geometry/Mesh.h>
 #include <Geometry/GeometrySet.h>
+#include <Display/IViewingVolume.h>
 
 namespace OpenEngine {
 namespace Renderers {
 namespace OpenGLES2 {
     
     using namespace Geometry;
-
+    using namespace Display;
+    
     GLuint LoadShader(GLenum type, const char *shaderSrc) {
         GLuint shader;
         GLint compiled;
@@ -34,12 +36,12 @@ namespace OpenGLES2 {
     void RenderingView::VisitTransformationNode(TransformationNode *node) {
         Matrix<4,4,float> oldModel = modelView;        
         Matrix<4,4,float> t = node->GetTransformationMatrix();
-        modelView = t;
-        shaderProgram->SetUniform("mv_matrix",t);
+        modelView = t * modelView ;
+        shaderProgram->SetUniform("mv_matrix",modelView);
         node->VisitSubNodes(*this);
         shaderProgram->SetUniform("mv_matrix",oldModel);
         modelView = oldModel;
-        logger.info << modelView << logger.end;
+        //logger.info << modelView << logger.end;
     }
     
     void RenderingView::VisitMeshNode(MeshNode *node) {
@@ -51,7 +53,8 @@ namespace OpenGLES2 {
         void* vPtr = v->GetVoidDataPtr();
         
         glVertexAttribPointer(0, v->GetDimension(), GL_FLOAT, GL_FALSE, 0, vPtr);
-        
+        glEnableVertexAttribArray(0);
+
         IndicesPtr indexBuffer = mesh->GetIndices();
         
         GLsizei count = mesh->GetDrawingRange();
@@ -71,39 +74,29 @@ namespace OpenGLES2 {
 
     void RenderingView::Handle(RenderingEventArg arg) {
         if (arg.renderer.GetCurrentStage() == IRenderer::RENDERER_PROCESS) {
-            static const GLfloat squareVertices[] = {
-                0.0, 0.5, 0.0,
-                -0.5, -0.5, 0.0,
-                0.5, -0.5, 0.0
-            };
-            
-       //     static const GLubyte squareColors[] = {
-//                255, 255,   0, 255,
-//                0,   255, 255, 255,
-//                0,     0,   0,   0,
-//                255,   0, 255, 255,
-//            };
-            
+
+
             shaderProgram->ApplyShader();
+            
+            IRenderCanvas& canvas = arg.canvas;
+            IViewingVolume* viewingVolume = canvas.GetViewingVolume();
+            
+            if (viewingVolume) {
+                Matrix<4,4,float> projectionMatrix = viewingVolume->GetProjectionMatrix();
+                Matrix<4,4,float> viewMatrix = viewingVolume->GetViewMatrix();
+                modelView = viewMatrix;
+                shaderProgram->SetUniform("proj_matrix",projectionMatrix);
+                
+                logger.info << projectionMatrix << logger.end;
+            }
+            
+            
             //glUseProgram(program);
             CHECK_FOR_GLES2_ERROR();
 
-            // Update attribute values.
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, squareVertices);
-            glEnableVertexAttribArray(0);
-            
-            
-            //glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, 1, 0, squareColors);
-            //glEnableVertexAttribArray(ATTRIB_COLOR);
-            CHECK_FOR_GLES2_ERROR();
-
-//            glDrawArrays(GL_TRIANGLES, 0, 3);
-            
-            
             arg.canvas.GetScene()->Accept(*this);
 
-            
-            
+
             shaderProgram->ReleaseShader();
             
             CHECK_FOR_GLES2_ERROR();

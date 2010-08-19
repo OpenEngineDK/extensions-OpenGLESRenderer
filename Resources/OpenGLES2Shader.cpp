@@ -30,7 +30,8 @@ namespace Resources {
     void OpenGLES2Shader::SetUniform(string name, Matrix<4, 4, float> value, bool force ) { 
         float v[16];
         value.ToArray(v);
-        glUniformMatrix4fv(0, 1, GL_FALSE, v);
+        GLint loc = glGetUniformLocation(programID, name.c_str());
+        glUniformMatrix4fv(loc, 1, GL_FALSE, v);
     
     }
     

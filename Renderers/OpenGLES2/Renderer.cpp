@@ -70,7 +70,9 @@ using namespace Display;
     Vector<4,float> Renderer::GetBackgroundColor() { return backgroundColor; }
 
 
-     void Renderer::ApplyViewingVolume(Display::IViewingVolume& volume) { THROW(); }
+     void Renderer::ApplyViewingVolume(Display::IViewingVolume& volume) {
+         // nop
+     }
      void Renderer::LoadTexture(ITexture2DPtr texr) { THROW(); }
      void Renderer::LoadTexture(ITexture2D* texr) { THROW(); }
      void Renderer::LoadTexture(ITexture3DPtr texr) { THROW(); }
