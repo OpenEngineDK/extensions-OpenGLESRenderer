@@ -16,6 +16,7 @@
                                         kEAGLColorFormatRGBA8,kEAGLDrawablePropertyColorFormat,
                                         nil];
         context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+        oeTouch = new iOSTouch();
         
     }        
     return self;
@@ -44,10 +45,8 @@
             NSLog(@"Failed to make complete framebuffer object %x", glCheckFramebufferStatus(GL_FRAMEBUFFER));
     }
 }
-- (void)setFramebuffer
-{
-    if (context)
-    {
+- (void)setFramebuffer {
+    if (context) {
         [EAGLContext setCurrentContext:context];
         
         if (!defaultFramebuffer)
@@ -59,12 +58,10 @@
     }
 }
 
-- (BOOL)presentFramebuffer
-{
+- (BOOL)presentFramebuffer {
     BOOL success = FALSE;
     
-    if (context)
-    {
+    if (context) {
         [EAGLContext setCurrentContext:context];
         
         glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
@@ -75,9 +72,34 @@
     return success;
 }
 
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+
+}
+- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
+    if (!oeTouch) return;
+    for (UITouch *t in touches) {
+        CGPoint curPoint = [t locationInView:self];
+        CGPoint prePoint = [t previousLocationInView:self];
+        
+        CGPoint dPoint = CGPointMake(curPoint.x - prePoint.x, 
+                                     curPoint.y - prePoint.y);
+        
+        TouchMovedEventArg arg;
+        arg.dx = dPoint.x;
+        arg.dy = dPoint.y;
+        oeTouch->TouchMovedEvent().Notify(arg);
+    }
+    
+}
+- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {}
+- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {}
 
 - (void)drawRect:(CGRect)rect {
     // No-op
+}
+
+- (void)setOETouch:(iOSTouch *)t {
+    oeTouch = t;
 }
 
 @end

@@ -13,7 +13,7 @@
 
 #include <Display/IEnvironment.h>
 #include <Display/iOSFrame.h>
-
+#include <Devices/iOSTouch.h>
 
 namespace OpenEngine {
 namespace Display {
@@ -28,13 +28,15 @@ using namespace Core;
 class iOSEnvironment : public IEnvironment {
 private:
     iOSFrame* frame;
+    Devices::iOSTouch* touch;
 public:
     iOSEnvironment();
     IFrame& CreateFrame();
     Devices::IMouse* GetMouse();
     Devices::IKeyboard* GetKeyboard();
     Devices::IJoystick* GetJoystick();
-
+    Devices::iOSTouch* GetTouch();
+    
     void Handle(Core::ProcessEventArg);
     void Handle(Core::InitializeEventArg);
     void Handle(Core::DeinitializeEventArg);

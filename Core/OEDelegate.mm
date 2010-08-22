@@ -10,7 +10,7 @@ using namespace OpenEngine::Core;
 
 - (BOOL)application:(UIApplication *)application
 didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    self.viewController = [[OEViewController alloc] init];
+    self.viewController = [[UIViewController alloc] init];
 
     
 //    window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];

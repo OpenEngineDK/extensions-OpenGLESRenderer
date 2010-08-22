@@ -87,7 +87,7 @@ namespace OpenGLES2 {
                 modelView = viewMatrix;
                 shaderProgram->SetUniform("proj_matrix",projectionMatrix);
                 
-                logger.info << projectionMatrix << logger.end;
+                //logger.info << projectionMatrix << logger.end;
             }
             
             

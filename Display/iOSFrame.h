@@ -14,6 +14,7 @@
 #include <Display/IFrame.h>
 #include <Display/ICanvas.h>
 #include <Meta/iOS.h>
+#include <Devices/iOSTouch.h>
 
 namespace OpenEngine {
 namespace Display {
@@ -72,6 +73,8 @@ public:
 
     void SetCanvas(ICanvas* canvas) { this->canvas = canvas; }
     ICanvas* GetCanvas() { return canvas; }
+    
+    void SetTouch(Devices::iOSTouch*);
     
 };
 

@@ -8,12 +8,14 @@ ADD_LIBRARY(Extensions_iOS
   Display/OEViewController.h
   Display/OEViewController.m
   Display/OEView.h
-  Display/OEView.m
+  Display/OEView.mm
   Display/iOSEnvironment.h
   Display/iOSEnvironment.mm
   Display/iOSFrame.h
   Display/iOSFrame.mm
   Display/OpenGLES2/RenderCanvas.cpp
+  Devices/iOSTouch.h
+  Devices/iOSTouch.cpp
   Renderers/OpenGLES2/RenderingView.cpp
   Renderers/OpenGLES2/Renderer.cpp
   Resources/OpenGLES2Shader.cpp

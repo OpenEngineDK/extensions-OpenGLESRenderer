@@ -61,7 +61,7 @@ iOSFrame::iOSFrame() : fc(FrameCanvas(*this)) {
         ((IListener<Display::DeinitializeEventArg>*)canvas)->Handle(DeinitializeEventArg(fc));
     }
 
-
+    void iOSFrame::SetTouch(iOSTouch *t) { [(OEView*)view setOETouch:t]; }
 
 }
 }
