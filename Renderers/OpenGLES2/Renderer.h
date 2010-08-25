@@ -12,13 +12,15 @@
 #define _OE_RENDERER_H_
 
 #include <Renderers/IRenderer.h>
-
+#include <Meta/OpenGLES2.h>
 
 namespace OpenEngine {
 namespace Renderers {
 namespace OpenGLES2 {
 
     using Core::Event;
+    using OpenEngine::Resources::ColorFormat;
+
 
 /**
  * Short description.
@@ -36,9 +38,16 @@ private:
 
     Vector<4,float> backgroundColor;
 
-public:
+public:    
     Renderer();
 
+    
+    static inline GLint GLInternalColorFormat(ColorFormat f);
+    static inline GLenum GLColorFormat(ColorFormat f);
+    inline void SetupTexParameters(ITexture2D* tex);
+
+
+    
     void Handle(Renderers::InitializeEventArg arg);
     void Handle(Renderers::DeinitializeEventArg arg);
     void Handle(Renderers::ProcessEventArg arg);

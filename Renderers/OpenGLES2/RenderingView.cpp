@@ -4,8 +4,6 @@
 #include <Scene/ISceneNode.h>
 #include <Scene/TransformationNode.h>
 #include <Scene/MeshNode.h>
-#include <Geometry/Mesh.h>
-#include <Geometry/GeometrySet.h>
 #include <Display/IViewingVolume.h>
 
 namespace OpenEngine {
@@ -38,28 +36,58 @@ namespace OpenGLES2 {
         Matrix<4,4,float> t = node->GetTransformationMatrix();
         modelView = t * modelView ;
         shaderProgram->SetUniform("mv_matrix",modelView);
+        shaderProgram->SetUniform("inv_matrix",modelView.GetInverse());
         node->VisitSubNodes(*this);
         shaderProgram->SetUniform("mv_matrix",oldModel);
+        shaderProgram->SetUniform("inv_matrix",oldModel.GetInverse());
         modelView = oldModel;
         //logger.info << modelView << logger.end;
     }
-    
-    void RenderingView::VisitMeshNode(MeshNode *node) {
-        
-        MeshPtr mesh = node->GetMesh();
-        GeometrySetPtr geom = mesh->GetGeometrySet();
-    
+
+    void RenderingView::ApplyGeometrySet(GeometrySetPtr geom) {
         IDataBlockPtr v = geom->GetVertices();
         void* vPtr = v->GetVoidDataPtr();
         
-        glVertexAttribPointer(0, v->GetDimension(), GL_FLOAT, GL_FALSE, 0, vPtr);
-        glEnableVertexAttribArray(0);
-
-        IndicesPtr indexBuffer = mesh->GetIndices();
+        glVertexAttribPointer(vertexLoc, v->GetDimension(), GL_FLOAT, GL_FALSE, 0, vPtr);
+        glEnableVertexAttribArray(vertexLoc);
+        CHECK_FOR_GLES2_ERROR();
         
-        GLsizei count = mesh->GetDrawingRange();
-        Geometry::Type type = mesh->GetType();
-        GLuint offset = mesh->GetIndexOffset();
+        IDataBlockPtr n = geom->GetNormals();
+        void* nPtr = n->GetVoidDataPtr();
+        
+        if (normalLoc != -1) {
+            glVertexAttribPointer(normalLoc, n->GetDimension(), GL_FLOAT, GL_FALSE, 0, nPtr);
+            glEnableVertexAttribArray(normalLoc);
+            CHECK_FOR_GLES2_ERROR();
+        }
+        IDataBlockPtr fstTexC = geom->GetDataBlock("texCoord0");
+        
+        //logger.info << fstTexC->ToString() << logger.end;
+        
+        void* tPtr = fstTexC->GetVoidDataPtr();
+        
+        glVertexAttribPointer(texCoordLoc, fstTexC->GetDimension(), GL_FLOAT, GL_FALSE, 0, tPtr);
+        glEnableVertexAttribArray(texCoordLoc);
+        
+        CHECK_FOR_GLES2_ERROR();
+
+    }
+
+    void RenderingView::ApplyMesh(Mesh* prim) {
+                
+
+        ApplyGeometrySet(prim->GetGeometrySet());
+        
+
+        ApplyMaterial(prim->GetMaterial());
+
+        
+
+        IndicesPtr indexBuffer = prim->GetIndices();
+        
+        GLsizei count = prim->GetDrawingRange();
+        Geometry::Type type = prim->GetType();
+        GLuint offset = prim->GetIndexOffset();
         CHECK_FOR_GLES2_ERROR();
         
         //logger.info << indexBuffer->ToString() << logger.end;
@@ -67,14 +95,42 @@ namespace OpenGLES2 {
         //glDrawArrays(GL_TRIANGLES, 0, count);
         //glDrawArrays(GL_LINE_STRIP, 0, count);
         
-        glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, indexBuffer->GetData() + offset);
-        CHECK_FOR_GLES2_ERROR();
+        glDrawElements(type, count, GL_UNSIGNED_SHORT, indexBuffer->GetData() + offset);
+        
+        
     }
+
+    void RenderingView::ApplyMaterial(MaterialPtr mat) {
+        if (mat->Get2DTextures().size()) {
+            //glEnable(GL_TEXTURE_2D);
+
+            GLuint texID = mat->Get2DTextures().front().second->GetID();
+            
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texID);
+            shaderProgram->SetUniform("texture1",0);
+            
+        }
+        CHECK_FOR_GLES2_ERROR();
+
+    }
+    
+    void RenderingView::VisitMeshNode(MeshNode *node) {
+        ApplyMesh(node->GetMesh().get());
+        node->VisitSubNodes(*this);
+        CHECK_FOR_GLES2_ERROR();                    
+    }
+
     
 
     void RenderingView::Handle(RenderingEventArg arg) {
         if (arg.renderer.GetCurrentStage() == IRenderer::RENDERER_PROCESS) {
 
+            glCullFace(GL_BACK);
+            //glCullFace(GL_FRONT);
+            glEnable(GL_CULL_FACE);
+            
+            glEnable(GL_DEPTH_TEST);
 
             shaderProgram->ApplyShader();
             
@@ -106,8 +162,16 @@ namespace OpenGLES2 {
             if (shaderProgram) {
                 logger.info << "Time to load shader" << logger.end;
                 shaderProgram->Load();
-                shaderProgram->BindAttribute(0,"vPosition");
+                //shaderProgram->BindAttribute(0,"v_position");
+                //shaderProgram->BindAttribute(1,"vNormal");
+                //shaderProgram->BindAttribute(2,"vTexCoord");
+
+                vertexLoc = shaderProgram->GetAttributeID("a_position");
+                normalLoc = shaderProgram->GetAttributeID("a_normal");
+                texCoordLoc = shaderProgram->GetAttributeID("a_texcoord");
             }
+            
+            
             
             CHECK_FOR_GLES2_ERROR();
 

@@ -20,7 +20,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 //
 //    [application.keyWindow addSubview:self.viewController.view];
     
-    NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:0.01 
+    NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:1/30.0 
                                                       target:self
                                                     selector:@selector(tick) 
                                                     userInfo:nil

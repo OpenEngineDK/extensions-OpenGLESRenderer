@@ -22,7 +22,10 @@ namespace Resources {
         glUseProgram(0);
     }
     
-    void OpenGLES2Shader::SetUniform(string name, int arg, bool force) { THROW(); }
+    void OpenGLES2Shader::SetUniform(string name, int arg, bool force) { 
+        GLint loc = glGetUniformLocation(programID, name.c_str());
+        glUniform1i(loc, arg);
+    }
     void OpenGLES2Shader::SetUniform(string name, float value, bool force) { THROW(); }
     void OpenGLES2Shader::SetUniform(string name, Vector<2, float> value, bool force ) { THROW(); }
     void OpenGLES2Shader::SetUniform(string name, Vector<3, float> value, bool force ) { THROW(); }
@@ -55,13 +58,18 @@ namespace Resources {
     void OpenGLES2Shader::SetAttribute(string name, Vector<3, float> value) { THROW(); }
     
     void OpenGLES2Shader::BindAttribute(int idx, string name) { 
+        logger.info << "Bind attributes!" << logger.end;
         glBindAttribLocation(programID, idx, name.c_str());
     }
     
     void OpenGLES2Shader::VertexAttribute(int id, Vector<3,float> vec) { THROW(); }
     
-    int OpenGLES2Shader::GetAttributeID(const string name) { THROW(); }
-    
+    GLint OpenGLES2Shader::GetAttributeID(const string name) { 
+        const char *str = name.c_str();
+        GLint loc = glGetAttribLocation(programID, str);
+        logger.error << "Attribute not found: " << name << logger.end;
+        return loc;
+    }
     void OpenGLES2Shader::Load() { 
         LoadResource(filename);
         GLuint vid = LoadShader(vertex_filename, GL_VERTEX_SHADER);
@@ -82,6 +90,10 @@ namespace Resources {
     }
     
     GLuint OpenGLES2Shader::LoadShader(string file, GLenum type) {
+        GLint maxAt;
+        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxAt);
+        logger.info << "Max attributes " << maxAt << logger.end;
+        
         GLuint shader = glCreateShader(type);
         
         string fname = DirectoryManager::FindFileInPath(file);
@@ -99,6 +111,7 @@ namespace Resources {
         
         glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
         if (!compiled) {
+            logger.error << file << logger.end;
             logger.error << "Failed to compile shader!" << logger.end;
             GLsizei bufsize;
             const int maxBufSize = 100;

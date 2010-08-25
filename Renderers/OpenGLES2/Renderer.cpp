@@ -1,7 +1,6 @@
 #include "Renderer.h"
 
 #include <Meta/iOS.h>
-#include <Meta/OpenGLES2.h>
 #include <Logging/Logger.h>
 #include <Display/IViewingVolume.h>
 
@@ -73,8 +72,154 @@ using namespace Display;
      void Renderer::ApplyViewingVolume(Display::IViewingVolume& volume) {
          // nop
      }
-     void Renderer::LoadTexture(ITexture2DPtr texr) { THROW(); }
-     void Renderer::LoadTexture(ITexture2D* texr) { THROW(); }
+    
+    GLint Renderer::GLInternalColorFormat(ColorFormat f){
+        switch (f) {
+            case ALPHA:
+                return GL_ALPHA;
+            case LUMINANCE: 
+                return GL_LUMINANCE;
+            case LUMINANCE_ALPHA: 
+                return GL_LUMINANCE_ALPHA;
+            case BGR:
+            case RGB: 
+                return GL_RGB;
+            case BGRA: 
+            case RGBA: 
+                return GL_RGBA;
+//            case ALPHA_COMPRESSED: return GL_COMPRESSED_ALPHA;
+//            case LUMINANCE_COMPRESSED: return GL_COMPRESSED_LUMINANCE;
+//            case LUMINANCE32F: return GL_R32F;
+//            case LUMINANCE_ALPHA_COMPRESSED: return GL_COMPRESSED_LUMINANCE_ALPHA;
+//            case RGB_COMPRESSED: return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
+//            case RGBA_COMPRESSED: return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+//            case RGB32F: return GL_RGB32F;
+//            case RGBA32F: return GL_RGBA32F;
+            case DEPTH: return GL_DEPTH_COMPONENT;
+            default: 
+                logger.warning << "Unsupported color format: " << f << logger.end;
+                logger.warning << "Defaulting to RGBA." << logger.end;
+        }
+        return GL_RGBA;
+    }
+    
+    GLenum Renderer::GLColorFormat(ColorFormat f){
+        switch (f) {
+            case ALPHA:
+            case ALPHA_COMPRESSED:
+                return GL_ALPHA;
+            case LUMINANCE: 
+            case LUMINANCE_COMPRESSED: 
+            case LUMINANCE32F:
+                return GL_LUMINANCE;
+            case LUMINANCE_ALPHA: 
+            case LUMINANCE_ALPHA_COMPRESSED: 
+                return GL_LUMINANCE_ALPHA;
+            case RGB: 
+            case RGB32F: 
+            case RGB_COMPRESSED: 
+                return GL_RGB;
+            case RGBA: 
+            case RGBA_COMPRESSED: 
+            case RGBA32F: 
+                return GL_RGBA;
+//            case BGR: 
+//                return GL_BGR;
+//            case BGRA: 
+//                return GL_BGRA;
+            case DEPTH: 
+                return GL_DEPTH_COMPONENT;
+            default: 
+                logger.warning << "Unsupported color format: " << f << logger.end;
+                logger.warning << "Defaulting to RGBA." << logger.end;
+        }
+        return GL_RGBA;
+    }
+    
+    
+     void Renderer::LoadTexture(ITexture2DPtr texr) { LoadTexture(texr.get()); }
+     void Renderer::LoadTexture(ITexture2D* texr) { 
+         // check for null pointers
+         if (texr == NULL) return;
+         
+         // check if textures has already been bound.
+         if (texr->GetID() != 0) return;
+         
+         // signal we need the texture data if not loaded.
+         bool loaded = true;
+         if (texr->GetVoidDataPtr() == NULL){
+             loaded = false;
+             texr->Load(); //@todo: what the #@!%?
+         }
+         
+         
+         // Generate and bind the texture id.
+         GLuint texid;
+         glGenTextures(1, &texid);
+         CHECK_FOR_GLES2_ERROR();
+         
+         
+         texr->SetID(texid);
+         glBindTexture(GL_TEXTURE_2D, texid);
+         CHECK_FOR_GLES2_ERROR();
+         
+         SetupTexParameters(texr);
+         CHECK_FOR_GLES2_ERROR();
+         
+//         SetTextureCompression(texr);
+         GLint internalFormat = GLInternalColorFormat(texr->GetColorFormat());
+         GLenum colorFormat = GLColorFormat(texr->GetColorFormat());
+         
+         logger.info << "Load: " << internalFormat << " " << colorFormat << logger.end;
+         
+         glTexImage2D(GL_TEXTURE_2D,
+                      0, // mipmap level
+                      internalFormat,
+                      texr->GetWidth(),
+                      texr->GetHeight(),
+                      0, // border
+                      colorFormat,
+                      texr->GetType(),
+                      texr->GetVoidDataPtr());
+         CHECK_FOR_GLES2_ERROR();
+         
+         glBindTexture(GL_TEXTURE_2D, 0);
+         
+         // Return the texture in the state we got it.
+         if (!loaded)
+             texr->Unload();
+         
+     }
+    
+    void Renderer::SetupTexParameters(ITexture2D* tex){
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        CHECK_FOR_GLES2_ERROR();
+        
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        
+//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,         tex->GetWrapping());
+//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,         tex->GetWrapping());
+//        if (tex->UseMipmapping()){
+//            glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP,    GL_TRUE);
+//            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, tex->GetFiltering());
+//        }else{
+//            glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP,    GL_FALSE);
+//            if (tex->GetFiltering() == NONE)
+//                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//            else
+//                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//        }
+//        if (tex->GetFiltering() == NONE)
+//            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//        else
+//            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+        
+    }
+
+    
      void Renderer::LoadTexture(ITexture3DPtr texr) { THROW(); }
      void Renderer::LoadTexture(ITexture3D* texr) { THROW(); }
      void Renderer::RebindTexture(ITexture2DPtr texr, unsigned int x, unsigned int y, unsigned int w, unsigned int h) { THROW(); }

@@ -14,13 +14,17 @@
 #include <Renderers/IRenderingView.h>
 #include <Meta/OpenGLES2.h>
 #include <Resources/IShaderResource.h>
+#include <Geometry/Mesh.h>
+#include <Geometry/GeometrySet.h>
 
 namespace OpenEngine {
 namespace Renderers {
 namespace OpenGLES2 {
     
-    using namespace OpenEngine::Resources;
-    using namespace OpenEngine::Scene;
+    using namespace Resources;
+    using namespace Scene;
+    using namespace Geometry;
+    using namespace Display;
 
 /**
  * Short description.
@@ -32,12 +36,18 @@ private:
     GLuint program;
     IShaderResourcePtr shaderProgram;
     Matrix<4,4,float> modelView;
+    GLint texCoordLoc;
+    GLint vertexLoc;
+    GLint normalLoc;
 public:
     RenderingView();
     void Handle(RenderingEventArg arg);
     void SetMainProgram(IShaderResourcePtr prog) { shaderProgram = prog; }
     void VisitTransformationNode(TransformationNode *node);
     void VisitMeshNode(MeshNode *node);
+    inline void ApplyMaterial(Geometry::MaterialPtr mat);
+    void ApplyGeometrySet(GeometrySetPtr geom);
+    void ApplyMesh(Mesh* prim);
 };
 
 } // NS OpenGLES2
