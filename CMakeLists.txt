@@ -18,5 +18,6 @@ ADD_LIBRARY(Extensions_iOS
   Devices/iOSTouch.cpp
   Renderers/OpenGLES2/RenderingView.cpp
   Renderers/OpenGLES2/Renderer.cpp
+  Renderers/OpenGLES2/LightRenderer.cpp
   Resources/OpenGLES2Shader.cpp
 )

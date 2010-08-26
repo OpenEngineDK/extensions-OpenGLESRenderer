@@ -28,7 +28,12 @@ namespace Resources {
     }
     void OpenGLES2Shader::SetUniform(string name, float value, bool force) { THROW(); }
     void OpenGLES2Shader::SetUniform(string name, Vector<2, float> value, bool force ) { THROW(); }
-    void OpenGLES2Shader::SetUniform(string name, Vector<3, float> value, bool force ) { THROW(); }
+    void OpenGLES2Shader::SetUniform(string name, Vector<3, float> value, bool force ) { 
+        float v[3];
+        value.ToArray(v);
+        GLint loc = glGetUniformLocation(programID, name.c_str());
+        glUniform3fv(loc, 3, v);
+    }
     void OpenGLES2Shader::SetUniform(string name, Vector<4, float> value, bool force ) { THROW(); }
     void OpenGLES2Shader::SetUniform(string name, Matrix<4, 4, float> value, bool force ) { 
         float v[16];

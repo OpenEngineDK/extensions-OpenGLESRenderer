@@ -16,6 +16,7 @@
 #include <Resources/IShaderResource.h>
 #include <Geometry/Mesh.h>
 #include <Geometry/GeometrySet.h>
+#include <Renderers/OpenGLES2/LightRenderer.h>
 
 namespace OpenEngine {
 namespace Renderers {
@@ -39,6 +40,7 @@ private:
     GLint texCoordLoc;
     GLint vertexLoc;
     GLint normalLoc;
+    LightRenderer* lightRenderer;
 public:
     RenderingView();
     void Handle(RenderingEventArg arg);
@@ -48,6 +50,8 @@ public:
     inline void ApplyMaterial(Geometry::MaterialPtr mat);
     void ApplyGeometrySet(GeometrySetPtr geom);
     void ApplyMesh(Mesh* prim);
+    
+    LightRenderer* GetLightRenderer() { return lightRenderer; }
 };
 
 } // NS OpenGLES2

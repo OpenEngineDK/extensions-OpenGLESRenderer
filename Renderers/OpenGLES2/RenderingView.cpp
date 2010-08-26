@@ -29,22 +29,32 @@ namespace OpenGLES2 {
         return shader;
     }
     
-    RenderingView::RenderingView() : modelView(Matrix<4,4,float>()) {}
+    RenderingView::RenderingView() : modelView(Matrix<4,4,float>()) {
+        lightRenderer = new LightRenderer();        
+    }
     
     void RenderingView::VisitTransformationNode(TransformationNode *node) {
         Matrix<4,4,float> oldModel = modelView;        
         Matrix<4,4,float> t = node->GetTransformationMatrix();
+        Matrix<4,4,float> inverse;
         modelView = t * modelView ;
+        
+        inverse = modelView.GetInverse().GetTranspose();
+        
         shaderProgram->SetUniform("mv_matrix",modelView);
-        shaderProgram->SetUniform("inv_matrix",modelView.GetInverse());
+        shaderProgram->SetUniform("inv_matrix",inverse);
         node->VisitSubNodes(*this);
         shaderProgram->SetUniform("mv_matrix",oldModel);
-        shaderProgram->SetUniform("inv_matrix",oldModel.GetInverse());
+        inverse = oldModel.GetInverse().GetTranspose();
+        shaderProgram->SetUniform("inv_matrix",inverse);
         modelView = oldModel;
         //logger.info << modelView << logger.end;
     }
 
     void RenderingView::ApplyGeometrySet(GeometrySetPtr geom) {
+        if (geom == NULL) {
+            return;
+        }
         IDataBlockPtr v = geom->GetVertices();
         void* vPtr = v->GetVoidDataPtr();
         
@@ -61,7 +71,8 @@ namespace OpenGLES2 {
             CHECK_FOR_GLES2_ERROR();
         }
         IDataBlockPtr fstTexC = geom->GetDataBlock("texCoord0");
-        
+        if (fstTexC == NULL)
+            return;
         //logger.info << fstTexC->ToString() << logger.end;
         
         void* tPtr = fstTexC->GetVoidDataPtr();
@@ -74,7 +85,9 @@ namespace OpenGLES2 {
     }
 
     void RenderingView::ApplyMesh(Mesh* prim) {
-                
+        if (prim == NULL) {
+            return;
+        }
 
         ApplyGeometrySet(prim->GetGeometrySet());
         
@@ -146,6 +159,19 @@ namespace OpenGLES2 {
                 //logger.info << projectionMatrix << logger.end;
             }
             
+            list<LightRenderer::Light> lights = lightRenderer->GetLights();
+            for (list<LightRenderer::Light>::iterator itr = lights.begin();
+                 itr != lights.end();
+                 itr++) {
+                LightRenderer::Light l = *itr;
+                switch (l.kind) {
+                    case LightRenderer::Light::DIRECTIONAL:
+                        shaderProgram->SetUniform("u_dir_light_pos",l.position);
+                        break;
+                    default:
+                        break;
+                }
+            }
             
             //glUseProgram(program);
             CHECK_FOR_GLES2_ERROR();
