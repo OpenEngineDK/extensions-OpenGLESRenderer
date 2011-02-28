@@ -1,8 +1,5 @@
-
-
-
 # Create the extension library
-ADD_LIBRARY(Extensions_iOS
+ADD_LIBRARY(Extensions_OpenGLESRenderer
   Display/OpenGLES2/RenderCanvas.h
   Display/OpenGLES2/RenderCanvas.cpp
   Renderers/OpenGLES2/RenderingView.cpp
@@ -12,6 +9,6 @@ ADD_LIBRARY(Extensions_iOS
 )
 
 TARGET_LINK_LIBRARIES(
-  Extensions_iOS
+  Extensions_OpenGLESRenderer
   "-framework OpenGLES"
 )
