@@ -89,6 +89,7 @@ public:
     virtual void DrawLine(Line line, Vector<3,float> color, float width = 1);
     virtual void DrawPoint(Vector<3,float> point, Vector<3,float> color , float size);
     virtual void DrawSphere(Vector<3,float> center, float radius, Vector<3,float> color);
+    virtual void RebindDataBlock(Resources::IDataBlockPtr ptr, unsigned int start, unsigned int end) { throw "error";}
 
 
 };

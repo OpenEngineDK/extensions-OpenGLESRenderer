@@ -1,4 +1,6 @@
 
+
+
 # Create the extension library
 ADD_LIBRARY(Extensions_iOS
   Core/iOSEngine.h
@@ -6,7 +8,7 @@ ADD_LIBRARY(Extensions_iOS
   Core/OEDelegate.h
   Core/OEDelegate.mm
   Display/OEViewController.h
-  Display/OEViewController.m
+  Display/OEViewController.mm
   Display/OEView.h
   Display/OEView.mm
   Display/iOSEnvironment.h
@@ -20,4 +22,10 @@ ADD_LIBRARY(Extensions_iOS
   Renderers/OpenGLES2/Renderer.cpp
   Renderers/OpenGLES2/LightRenderer.cpp
   Resources/OpenGLES2Shader.cpp
+)
+
+TARGET_LINK_LIBRARIES(
+  Extensions_iOS
+  "-framework OpenGLES"
+  "-framework QuartzCore"
 )

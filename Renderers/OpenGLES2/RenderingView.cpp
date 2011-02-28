@@ -5,6 +5,7 @@
 #include <Scene/TransformationNode.h>
 #include <Scene/MeshNode.h>
 #include <Display/IViewingVolume.h>
+#include <Resources/DataBlock.h>
 
 namespace OpenEngine {
 namespace Renderers {
@@ -117,7 +118,7 @@ namespace OpenGLES2 {
         if (mat->Get2DTextures().size()) {
             //glEnable(GL_TEXTURE_2D);
 
-            GLuint texID = mat->Get2DTextures().front().second->GetID();
+            GLuint texID = (*mat->Get2DTextures().begin()).second->GetID();
             
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texID);

@@ -59,13 +59,22 @@ public:
 
     TextureList GetTextures();
 
+    void SetAttribute(string name, IDataBlockPtr values) { throw "error"; };
     void SetAttribute(string name, Vector<3, float> value);
+
+    bool HasAttribute(string name) { throw "error"; }
 
     void BindAttribute(int id, string name);
 
     void VertexAttribute(int id, Vector<3,float> vec);
     
     int GetAttributeID(const string name);
+
+     int GetShaderModel()  { throw "error"; }
+     bool HasVertexSupport()  { throw "error"; }
+     bool HasGeometrySupport()  { throw "error"; }
+     bool HasFragmentSupport()  { throw "error"; }
+
 
     void Load();
     void Unload();
