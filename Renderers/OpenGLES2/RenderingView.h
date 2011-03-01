@@ -37,7 +37,9 @@ private:
     GLuint program;
     OpenGLES2ShaderPtr shaderProgram;
     Matrix<4,4,float> modelView;
+    Matrix<4,4,float> normalMatrix;
     LightRenderer* lightRenderer;
+    RenderingEventArg *arg;
 
 public:
     RenderingView();

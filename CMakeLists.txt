@@ -5,12 +5,10 @@ ADD_LIBRARY(Extensions_OpenGLESRenderer
   Renderers/OpenGLES2/RenderingView.cpp
   Renderers/OpenGLES2/Renderer.cpp
   Renderers/OpenGLES2/LightRenderer.cpp
-  Resources/OpenGLES2Shader.h
-  Resources/OpenGLES2Shader.cpp
-  Resources/GLES2ShaderPlugin.cpp
 )
 
 TARGET_LINK_LIBRARIES(
   Extensions_OpenGLESRenderer
+  Extensions_OpenGLESResources
   "-framework OpenGLES"
 )

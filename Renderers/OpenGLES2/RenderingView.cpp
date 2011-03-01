@@ -14,47 +14,32 @@ namespace OpenGLES2 {
     using namespace Geometry;
     using namespace Display;
     
-    GLuint LoadShader(GLenum type, const char *shaderSrc) {
-        GLuint shader;
-        GLint compiled;
-        
-        shader = glCreateShader(type);
-        glShaderSource(shader, 1, &shaderSrc, NULL);
-        glCompileShader(shader);
-        
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-        if (!compiled)
-            logger.error << "compile err" << logger.end;
-        
-        return shader;
-    }
-    
-    RenderingView::RenderingView() : modelView(Matrix<4,4,float>()) {
-        lightRenderer = new LightRenderer();        
+    RenderingView::RenderingView() 
+        : modelView(Matrix<4,4,float>()), 
+          normalMatrix(modelView.GetInverse().GetTranspose()), 
+          arg(NULL){
+        lightRenderer = new LightRenderer();
     }
     
     void RenderingView::VisitTransformationNode(TransformationNode *node) {
-        Matrix<4,4,float> oldModel = modelView;        
+        // Store old matrices
+        Matrix<4,4,float> oldModel = modelView;
+        Matrix<4,4,float> oldNormal = normalMatrix;
+
+        // Calc new ones
         Matrix<4,4,float> t = node->GetTransformationMatrix();
-        Matrix<4,4,float> inverse;
-        modelView = t * modelView ;
+        modelView = t * modelView;        
+        normalMatrix = modelView.GetInverse().GetTranspose();
         
-        inverse = modelView.GetInverse().GetTranspose();
-        
-        shaderProgram->SetUniform("mv_matrix",modelView);
-        shaderProgram->SetUniform("inv_matrix",inverse);
         node->VisitSubNodes(*this);
-        shaderProgram->SetUniform("mv_matrix",oldModel);
-        inverse = oldModel.GetInverse().GetTranspose();
-        shaderProgram->SetUniform("inv_matrix",inverse);
+
+        // Restore old matrices
+        normalMatrix = oldNormal;
         modelView = oldModel;
-        //logger.info << modelView << logger.end;
     }
 
     void RenderingView::ApplyGeometrySet(OpenGLES2ShaderPtr shader, GeometrySetPtr geom) {
-        if (geom == NULL) {
-            return;
-        }
+        if (geom == NULL) return;
 
         AttributeBlocks attrs = geom->GetAttributeLists();
         AttributeBlocks::iterator attrItr = attrs.begin();
@@ -71,23 +56,35 @@ namespace OpenGLES2 {
     }
 
     void RenderingView::ApplyMaterial(OpenGLES2ShaderPtr shader, MaterialPtr mat) {
-        if (mat->Get2DTextures().size()) {
+        if (mat == NULL) return;
 
-            GLuint texID = (*mat->Get2DTextures().begin()).second->GetID();
-            
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texID);
-            shader->SetUniform("texture1",0);
-            
+        GLint texUnit = 0;
+
+        map<string, ITexture2DPtr> texs2D = mat->Get2DTextures();
+        map<string, ITexture2DPtr>::iterator itr = texs2D.begin();
+        while (itr != texs2D.end()) {
+            GLint loc = shader->GetUniformLocation(itr->first);
+            if (loc != -1){
+                ITexture2DPtr tex = itr->second;
+                glActiveTexture(GL_TEXTURE0 + texUnit);
+                glBindTexture(GL_TEXTURE_2D, tex->GetID());
+                shader->SetUniform(itr->first, texUnit);
+                texUnit++;
+                CHECK_FOR_GLES2_ERROR();
+            }
+            itr++;
         }
-        CHECK_FOR_GLES2_ERROR();
-
     }
 
     void RenderingView::ApplyMesh(Mesh* prim) {
         if (prim == NULL) {
             return;
         }
+
+        shaderProgram->ApplyShader();
+        shaderProgram->SetUniform("proj_matrix", arg->canvas.GetViewingVolume()->GetProjectionMatrix());
+        shaderProgram->SetUniform("mv_matrix",modelView);
+        shaderProgram->SetUniform("inv_matrix",normalMatrix);
 
         ApplyGeometrySet(shaderProgram, prim->GetGeometrySet());
         ApplyMaterial(shaderProgram, prim->GetMaterial());
@@ -105,8 +102,8 @@ namespace OpenGLES2 {
         //glDrawArrays(GL_LINE_STRIP, 0, count);
         
         glDrawElements(type, count, GL_UNSIGNED_SHORT, indexBuffer->GetData() + offset);
-        
-        
+
+        //shaderProgram->ReleaseShader();
     }
     
     void RenderingView::VisitMeshNode(MeshNode *node) {
@@ -118,6 +115,7 @@ namespace OpenGLES2 {
     
 
     void RenderingView::Handle(RenderingEventArg arg) {
+        this->arg = &arg;
         if (arg.renderer.GetCurrentStage() == IRenderer::RENDERER_PROCESS) {
 
             glCullFace(GL_BACK);
@@ -132,10 +130,9 @@ namespace OpenGLES2 {
             IViewingVolume* viewingVolume = canvas.GetViewingVolume();
             
             if (viewingVolume) {
-                Matrix<4,4,float> projectionMatrix = viewingVolume->GetProjectionMatrix();
                 Matrix<4,4,float> viewMatrix = viewingVolume->GetViewMatrix();
                 modelView = viewMatrix;
-                shaderProgram->SetUniform("proj_matrix",projectionMatrix);
+                normalMatrix = viewMatrix.GetInverse().GetTranspose();
                 
                 //logger.info << projectionMatrix << logger.end;
             }
@@ -154,11 +151,9 @@ namespace OpenGLES2 {
                 }
             }
             
-            //glUseProgram(program);
             CHECK_FOR_GLES2_ERROR();
 
             arg.canvas.GetScene()->Accept(*this);
-
 
             shaderProgram->ReleaseShader();
             
