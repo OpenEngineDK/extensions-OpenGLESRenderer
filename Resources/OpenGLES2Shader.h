@@ -36,6 +36,8 @@ public:
     void ApplyShader();
     void ReleaseShader();
 
+    GLint GetUniformLocation(string name);
+
     void SetUniform(string name, int arg, bool force = false);
     void SetUniform(string name, float value, bool force = false);
     void SetUniform(string name, Vector<2, float> value, bool force = false);

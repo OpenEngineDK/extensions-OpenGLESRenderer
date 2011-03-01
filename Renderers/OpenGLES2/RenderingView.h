@@ -37,9 +37,6 @@ private:
     GLuint program;
     OpenGLES2ShaderPtr shaderProgram;
     Matrix<4,4,float> modelView;
-    GLint texCoordLoc;
-    GLint vertexLoc;
-    GLint normalLoc;
     LightRenderer* lightRenderer;
 
 public:
@@ -48,8 +45,8 @@ public:
     void SetMainProgram(OpenGLES2ShaderPtr prog) { shaderProgram = prog; }
     void VisitTransformationNode(TransformationNode *node);
     void VisitMeshNode(MeshNode *node);
-    inline void ApplyMaterial(Geometry::MaterialPtr mat);
-    void ApplyGeometrySet(GeometrySetPtr geom);
+    inline void ApplyMaterial(OpenGLES2ShaderPtr shader, Geometry::MaterialPtr mat);
+    void ApplyGeometrySet(OpenGLES2ShaderPtr shader, GeometrySetPtr geom);
     void ApplyMesh(Mesh* prim);
     
     LightRenderer* GetLightRenderer() { return lightRenderer; }

@@ -22,26 +22,31 @@ namespace Resources {
     void OpenGLES2Shader::ReleaseShader() { 
         glUseProgram(0);
     }
-    
-    void OpenGLES2Shader::SetUniform(string name, int arg, bool force) { 
+
+    GLint OpenGLES2Shader::GetUniformLocation(string name) {
         GLint loc = glGetUniformLocation(programID, name.c_str());
-        glUniform1i(loc, arg);
+        if (loc == -1)
+            logger.error << "Uniform not found: " << name << logger.end;
+        return loc;
     }
-    void OpenGLES2Shader::SetUniform(string name, float value, bool force) { THROW(); }
-    void OpenGLES2Shader::SetUniform(string name, Vector<2, float> value, bool force ) { THROW(); }
+    
+    void OpenGLES2Shader::SetUniform(string name, int value, bool force) { 
+        glUniform1i(GetUniformLocation(name), value);
+    }
+    void OpenGLES2Shader::SetUniform(string name, float value, bool force) { 
+        glUniform1f(GetUniformLocation(name), value);
+    }
+    void OpenGLES2Shader::SetUniform(string name, Vector<2, float> value, bool force ) { 
+        glUniform2fv(GetUniformLocation(name), 2, value.ToArray());
+    }
     void OpenGLES2Shader::SetUniform(string name, Vector<3, float> value, bool force ) { 
-        float v[3];
-        value.ToArray(v);
-        GLint loc = glGetUniformLocation(programID, name.c_str());
-        glUniform3fv(loc, 3, v);
+        glUniform3fv(GetUniformLocation(name), 3, value.ToArray());
     }
-    void OpenGLES2Shader::SetUniform(string name, Vector<4, float> value, bool force ) { THROW(); }
+    void OpenGLES2Shader::SetUniform(string name, Vector<4, float> value, bool force ) { 
+        glUniform4fv(GetUniformLocation(name), 4, value.ToArray());
+    }
     void OpenGLES2Shader::SetUniform(string name, Matrix<4, 4, float> value, bool force ) { 
-        float v[16];
-        value.ToArray(v);
-        GLint loc = glGetUniformLocation(programID, name.c_str());
-        glUniformMatrix4fv(loc, 1, GL_FALSE, v);
-    
+        glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, value.ToArray());
     }
     
     void OpenGLES2Shader::GetUniform(string name, int &value) { THROW(); }
@@ -73,7 +78,8 @@ namespace Resources {
     GLint OpenGLES2Shader::GetAttributeID(const string name) { 
         const char *str = name.c_str();
         GLint loc = glGetAttribLocation(programID, str);
-        logger.error << "Attribute not found: " << name << logger.end;
+        if (loc == -1)
+            logger.error << "Attribute not found: " << name << logger.end;
         return loc;
     }
     void OpenGLES2Shader::Load() { 
