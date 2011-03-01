@@ -7,9 +7,13 @@
 // See the GNU General Public License for more details (see LICENSE).
 //--------------------------------------------------------------------
 
+#ifndef _OpenGL_ES_2_Shader_H_
+#define _OpenGL_ES_2_Shader_H_
+
 #include <Resources/IShaderResource.h>
 #include <Resources/IResourcePlugin.h>
 #include <Meta/OpenGLES2.h>
+#include <Logging/Logger.h>
 
 namespace OpenEngine {
 namespace Resources {
@@ -18,19 +22,16 @@ namespace Resources {
  *
  * @class OpenGLES2Shader OpenGLES2Shader.h ons/iOS/Resources/OpenGLES2Shader.h
  */
-class OpenGLES2Shader : public IShaderResource {
+class OpenGLES2Shader /* : public IShaderResource*/ {
 private:
-    string filename;
-    string vertex_filename;
-    string fragment_filename;
+    string vertexShader, fragmentShader;
     
-    void LoadResource(string file);
     GLuint LoadShader(string file, GLenum type);
     GLuint programID;
     
     
 public:
-    OpenGLES2Shader(string file);
+    OpenGLES2Shader(string vertex, string fragment);
     
     void ApplyShader();
     void ReleaseShader();
@@ -70,26 +71,27 @@ public:
     
     int GetAttributeID(const string name);
 
-     int GetShaderModel()  { throw "error"; }
-     bool HasVertexSupport()  { throw "error"; }
-     bool HasGeometrySupport()  { throw "error"; }
-     bool HasFragmentSupport()  { throw "error"; }
-
+    int GetShaderModel()  { throw "error"; }
+    bool HasVertexSupport()  { throw "error"; }
+    bool HasGeometrySupport()  { throw "error"; }
+    bool HasFragmentSupport()  { throw "error"; }
 
     void Load();
     void Unload();
 
 };
 
-class GLES2ShaderPlugin : public IResourcePlugin<IShaderResource> {
+typedef boost::shared_ptr<OpenGLES2Shader> OpenGLES2ShaderPtr;
+
+class GLES2ShaderPlugin : public IResourcePlugin<OpenGLES2Shader> {
 public:
     GLES2ShaderPlugin() {
         this->AddExtension("glsl");
     }
-    IShaderResourcePtr CreateResource(string file) {
-        return IShaderResourcePtr(new OpenGLES2Shader(file));
-    }
+    OpenGLES2ShaderPtr CreateResource(string file);
 };
     
 } // NS Resources
 } // NS OpenEngine
+
+#endif //_OpenGL_ES_2_Shader_H_

@@ -11,7 +11,8 @@ namespace Resources {
 
     using namespace std;
     
-    OpenGLES2Shader::OpenGLES2Shader(string file) : filename(file) {
+    OpenGLES2Shader::OpenGLES2Shader(string vertex, string fragment) 
+        : vertexShader(vertex), fragmentShader(fragment) {
         
     }
     
@@ -76,9 +77,8 @@ namespace Resources {
         return loc;
     }
     void OpenGLES2Shader::Load() { 
-        LoadResource(filename);
-        GLuint vid = LoadShader(vertex_filename, GL_VERTEX_SHADER);
-        GLuint fid = LoadShader(fragment_filename, GL_FRAGMENT_SHADER);
+        GLuint vid = LoadShader(vertexShader, GL_VERTEX_SHADER);
+        GLuint fid = LoadShader(fragmentShader, GL_FRAGMENT_SHADER);
         
         programID = glCreateProgram();
         glAttachShader(programID, vid);
@@ -95,20 +95,10 @@ namespace Resources {
     }
     
     GLuint OpenGLES2Shader::LoadShader(string file, GLenum type) {
-        GLint maxAt;
-        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxAt);
-        logger.info << "Max attributes " << maxAt << logger.end;
-        
         GLuint shader = glCreateShader(type);
         
-        string fname = DirectoryManager::FindFileInPath(file);
-        
-        GLchar *str = File::ReadShader<GLchar>(fname);
-        
-        const GLchar *Cstr = str;
-        
+        const GLchar *Cstr = file.c_str();
         glShaderSource(shader, 1, &Cstr, NULL);
-        free(str);
         
         glCompileShader(shader);
         
@@ -127,35 +117,6 @@ namespace Resources {
         
         
         return shader;
-    }
-    
-    void OpenGLES2Shader::LoadResource(string res) {
-        ifstream* in = File::Open(res);
-        
-        
-        char buf[255], file[255];
-        int line = 0;
-        
-        while (!in->eof()) {
-            ++line;
-            in->getline(buf, 255);
-            
-            string type = string(buf,5);
-            if (type.empty() || buf[0] == '#')
-                continue;
-            
-            if (type == "vert:") {
-                if (sscanf(buf, "vert: %s", file) == 1)
-                    vertex_filename = string(file);                
-            } else if (type == "frag:")
-                if (sscanf(buf, "frag: %s", file) == 1)
-                    fragment_filename = string(file);
-        }
-        
-        in->close();
-        delete in;
-        
-        
     }
     
     void OpenGLES2Shader::Unload() { THROW(); }

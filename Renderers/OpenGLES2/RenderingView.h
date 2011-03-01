@@ -13,7 +13,7 @@
 
 #include <Renderers/IRenderingView.h>
 #include <Meta/OpenGLES2.h>
-#include <Resources/IShaderResource.h>
+#include <Resources/OpenGLES2Shader.h>
 #include <Geometry/Mesh.h>
 #include <Geometry/GeometrySet.h>
 #include <Renderers/OpenGLES2/LightRenderer.h>
@@ -35,16 +35,17 @@ namespace OpenGLES2 {
 class RenderingView : public IRenderingView {
 private:
     GLuint program;
-    IShaderResourcePtr shaderProgram;
+    OpenGLES2ShaderPtr shaderProgram;
     Matrix<4,4,float> modelView;
     GLint texCoordLoc;
     GLint vertexLoc;
     GLint normalLoc;
     LightRenderer* lightRenderer;
+
 public:
     RenderingView();
     void Handle(RenderingEventArg arg);
-    void SetMainProgram(IShaderResourcePtr prog) { shaderProgram = prog; }
+    void SetMainProgram(OpenGLES2ShaderPtr prog) { shaderProgram = prog; }
     void VisitTransformationNode(TransformationNode *node);
     void VisitMeshNode(MeshNode *node);
     inline void ApplyMaterial(Geometry::MaterialPtr mat);

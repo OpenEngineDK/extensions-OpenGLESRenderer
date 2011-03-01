@@ -95,8 +95,6 @@ namespace OpenGLES2 {
 
         ApplyMaterial(prim->GetMaterial());
 
-        
-
         IndicesPtr indexBuffer = prim->GetIndices();
         
         GLsizei count = prim->GetDrawingRange();
@@ -116,7 +114,6 @@ namespace OpenGLES2 {
 
     void RenderingView::ApplyMaterial(MaterialPtr mat) {
         if (mat->Get2DTextures().size()) {
-            //glEnable(GL_TEXTURE_2D);
 
             GLuint texID = (*mat->Get2DTextures().begin()).second->GetID();
             
@@ -189,9 +186,6 @@ namespace OpenGLES2 {
             if (shaderProgram) {
                 logger.info << "Time to load shader" << logger.end;
                 shaderProgram->Load();
-                //shaderProgram->BindAttribute(0,"v_position");
-                //shaderProgram->BindAttribute(1,"vNormal");
-                //shaderProgram->BindAttribute(2,"vTexCoord");
 
                 vertexLoc = shaderProgram->GetAttributeID("a_position");
                 normalLoc = shaderProgram->GetAttributeID("a_normal");
