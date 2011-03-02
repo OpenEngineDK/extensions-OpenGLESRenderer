@@ -5,3 +5,6 @@ darcs /extensions/OpenGLESResources             http://openengine.dk/code/extens
 
 darcs-dev /extensions/OpenGLESRenderer         fh.daimi.au.dk:/users/cgd/code/extensions/OpenGLESRenderer
 darcs-dev /extensions/OpenGLESResources        fh.daimi.au.dk:/users/cgd/code/extensions/OpenGLESResources
+
+# extension data
+any /resources/ http://openengine.dk/data/extensions/OpenGLESRenderer/Shaders.zip
