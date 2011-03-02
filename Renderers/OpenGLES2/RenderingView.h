@@ -1,4 +1,4 @@
-// 
+// OpenGLES 2 RenderingView
 // -------------------------------------------------------------------
 // Copyright (C) 2007 OpenEngine.dk (See AUTHORS)
 //
@@ -6,7 +6,6 @@
 // Public License version 2 or any later version.
 // See the GNU General Public License for more details (see LICENSE).
 //--------------------------------------------------------------------
-
 
 #ifndef _OE_RENDERING_VIEW_H_
 #define _OE_RENDERING_VIEW_H_
@@ -33,25 +32,34 @@ namespace OpenGLES2 {
  * @class RenderingView RenderingView.h ns/iOS/Renderers/OpenGLES2/RenderingView.h
  */
 class RenderingView : public IRenderingView {
-private:
-    GLuint program;
-    OpenGLES2ShaderPtr shaderProgram;
+protected:
+    struct MeshDecoration {
+        OpenGLES2Shader* shader;
+        MeshDecoration(OpenGLES2Shader* shader) : shader(shader) {}
+    };
+
     Matrix<4,4,float> modelView;
     Matrix<4,4,float> normalMatrix;
     LightRenderer* lightRenderer;
     RenderingEventArg *arg;
+    map<ISceneNode*, void*> nodeDecorations;
+    string uberVert, uberFrag;
 
 public:
     RenderingView();
+    virtual ~RenderingView();
     void Handle(RenderingEventArg arg);
-    void SetMainProgram(OpenGLES2ShaderPtr prog) { shaderProgram = prog; }
     void VisitTransformationNode(TransformationNode *node);
     void VisitMeshNode(MeshNode *node);
-    inline void ApplyMaterial(OpenGLES2ShaderPtr shader, Geometry::MaterialPtr mat);
-    void ApplyGeometrySet(OpenGLES2ShaderPtr shader, GeometrySetPtr geom);
-    void ApplyMesh(Mesh* prim);
-    
     LightRenderer* GetLightRenderer() { return lightRenderer; }
+
+protected:
+    inline void ApplyMaterial(Geometry::MaterialPtr mat, OpenGLES2Shader* shader);
+    void ApplyGeometrySet(GeometrySetPtr geom,OpenGLES2Shader* shader);
+    void ApplyMesh(Mesh* prim, OpenGLES2Shader* shader);
+    
+    MeshDecoration* DecorateMeshNode(MeshNode* node);
+
 };
 
 } // NS OpenGLES2

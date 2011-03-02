@@ -13,7 +13,7 @@ using std::string;
 
 
 /**
- *  Should never be used in the code, use CHECK_FOR_GL_ERROR(); instead
+ *  Should never be used in the code, use CHECK_FOR_GLES2_ERROR(); instead
  */
 inline void CHECK_FOR_GLES2_ERROR(const std::string file, const int line) {
     GLenum errorCode = glGetError();

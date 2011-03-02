@@ -6,6 +6,8 @@
 #include <Scene/MeshNode.h>
 #include <Display/IViewingVolume.h>
 #include <Resources/DataBlock.h>
+#include <Resources/DirectoryManager.h>
+#include <Resources/File.h>
 
 namespace OpenEngine {
 namespace Renderers {
@@ -21,6 +23,11 @@ namespace OpenGLES2 {
         lightRenderer = new LightRenderer();
     }
     
+    RenderingView::~RenderingView() {
+        delete lightRenderer;
+        // @TODO clean up decorators
+    }
+
     void RenderingView::VisitTransformationNode(TransformationNode *node) {
         // Store old matrices
         Matrix<4,4,float> oldModel = modelView;
@@ -38,7 +45,7 @@ namespace OpenGLES2 {
         modelView = oldModel;
     }
 
-    void RenderingView::ApplyGeometrySet(OpenGLES2ShaderPtr shader, GeometrySetPtr geom) {
+    void RenderingView::ApplyGeometrySet(GeometrySetPtr geom, OpenGLES2Shader* shader) {
         if (geom == NULL) return;
 
         AttributeBlocks attrs = geom->GetAttributeLists();
@@ -55,7 +62,7 @@ namespace OpenGLES2 {
         }
     }
 
-    void RenderingView::ApplyMaterial(OpenGLES2ShaderPtr shader, MaterialPtr mat) {
+    void RenderingView::ApplyMaterial(MaterialPtr mat, OpenGLES2Shader* shader) {
         if (mat == NULL) return;
 
         GLint texUnit = 0;
@@ -74,20 +81,36 @@ namespace OpenGLES2 {
             }
             itr++;
         }
+
+        // Apply lights
+        list<LightRenderer::Light> lights = lightRenderer->GetLights();
+        for (list<LightRenderer::Light>::iterator itr = lights.begin();
+             itr != lights.end();
+             itr++) {
+            LightRenderer::Light l = *itr;
+            switch (l.kind) {
+            case LightRenderer::Light::DIRECTIONAL:
+                shader->SetUniform("u_dir_light_pos",l.position);
+                break;
+            default:
+                break;
+            }
+        }
     }
 
-    void RenderingView::ApplyMesh(Mesh* prim) {
+    void RenderingView::ApplyMesh(Mesh* prim, OpenGLES2Shader* shader) {
         if (prim == NULL) {
             return;
         }
 
-        shaderProgram->ApplyShader();
-        shaderProgram->SetUniform("proj_matrix", arg->canvas.GetViewingVolume()->GetProjectionMatrix());
-        shaderProgram->SetUniform("mv_matrix",modelView);
-        shaderProgram->SetUniform("inv_matrix",normalMatrix);
+        shader->ApplyShader();
+        shader->SetUniform("proj_matrix", arg->canvas.GetViewingVolume()->GetProjectionMatrix());
+        shader->SetUniform("mv_matrix",modelView);
+        shader->SetUniform("norm_matrix",normalMatrix);
+        shader->SetUniform("useLight", 1);
 
-        ApplyGeometrySet(shaderProgram, prim->GetGeometrySet());
-        ApplyMaterial(shaderProgram, prim->GetMaterial());
+        ApplyGeometrySet(prim->GetGeometrySet(), shader);
+        ApplyMaterial(prim->GetMaterial(), shader);
 
         IndicesPtr indexBuffer = prim->GetIndices();
         
@@ -102,30 +125,30 @@ namespace OpenGLES2 {
         //glDrawArrays(GL_LINE_STRIP, 0, count);
         
         glDrawElements(type, count, GL_UNSIGNED_SHORT, indexBuffer->GetData() + offset);
-
-        //shaderProgram->ReleaseShader();
     }
     
     void RenderingView::VisitMeshNode(MeshNode *node) {
-        ApplyMesh(node->GetMesh().get());
+        map<ISceneNode*, void*>::const_iterator itr = nodeDecorations.find(node);
+        MeshDecoration* deco;
+        if (itr == nodeDecorations.end())
+            deco = DecorateMeshNode(node);
+        else
+            deco = (MeshDecoration*) itr->second;
+
+        ApplyMesh(node->GetMesh().get(), deco->shader);
         node->VisitSubNodes(*this);
         CHECK_FOR_GLES2_ERROR();                    
     }
-
-    
 
     void RenderingView::Handle(RenderingEventArg arg) {
         this->arg = &arg;
         if (arg.renderer.GetCurrentStage() == IRenderer::RENDERER_PROCESS) {
 
             glCullFace(GL_BACK);
-            //glCullFace(GL_FRONT);
             glEnable(GL_CULL_FACE);
             
             glEnable(GL_DEPTH_TEST);
 
-            shaderProgram->ApplyShader();
-            
             IRenderCanvas& canvas = arg.canvas;
             IViewingVolume* viewingVolume = canvas.GetViewingVolume();
             
@@ -136,38 +159,63 @@ namespace OpenGLES2 {
                 
                 //logger.info << projectionMatrix << logger.end;
             }
-            
-            list<LightRenderer::Light> lights = lightRenderer->GetLights();
-            for (list<LightRenderer::Light>::iterator itr = lights.begin();
-                 itr != lights.end();
-                 itr++) {
-                LightRenderer::Light l = *itr;
-                switch (l.kind) {
-                    case LightRenderer::Light::DIRECTIONAL:
-                        shaderProgram->SetUniform("u_dir_light_pos",l.position);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            
-            CHECK_FOR_GLES2_ERROR();
 
             arg.canvas.GetScene()->Accept(*this);
 
-            shaderProgram->ReleaseShader();
-            
             CHECK_FOR_GLES2_ERROR();
         
         } else if (arg.renderer.GetCurrentStage() == IRenderer::RENDERER_INITIALIZE) {
-            
-            if (shaderProgram) {
-                logger.info << "Time to load shader" << logger.end;
-                shaderProgram->Load();
-            }
             CHECK_FOR_GLES2_ERROR();
 
         }
+    }
+
+    /*** DECORATER METHODS ***/
+    
+    RenderingView::MeshDecoration* RenderingView::DecorateMeshNode(MeshNode* node){
+        logger.info << "Uh met a mesh node in need of decoration" << logger.end;
+
+        string filename = DirectoryManager::FindFileInPath("Shaders/ESUberShader.glsl");
+        ifstream* in = File::Open(filename);
+
+        char buf[255], file[255];
+        int line = 0;
+
+        string vertexFilename, fragFilename;
+        
+        while (!in->eof()) {
+            ++line;
+            in->getline(buf, 255);
+            
+            string type = string(buf,5);
+            if (type.empty() || buf[0] == '#')
+                continue;
+            
+            if (type == "vert:") {
+                if (sscanf(buf, "vert: %s", file) == 1)
+                    vertexFilename = string(file);                
+            } else if (type == "frag:")
+                if (sscanf(buf, "frag: %s", file) == 1)
+                    fragFilename = string(file);
+        }
+        
+        in->close();
+        delete in;
+
+        vertexFilename = DirectoryManager::FindFileInPath(vertexFilename);
+        char *vertShdr = File::ReadShader<char>(vertexFilename);
+        uberVert = string(vertShdr);
+
+        fragFilename = DirectoryManager::FindFileInPath(fragFilename);
+        char *fragShdr = File::ReadShader<char>(fragFilename);
+        uberFrag = string(fragShdr);
+
+        MeshDecoration* deco = new MeshDecoration(new OpenGLES2Shader(uberVert, uberFrag));
+        deco->shader->Load();
+
+        nodeDecorations[node] = deco;
+
+        return deco;
     }
 
 }
