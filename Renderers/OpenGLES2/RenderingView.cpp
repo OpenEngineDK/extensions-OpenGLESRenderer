@@ -8,19 +8,59 @@
 #include <Resources/DataBlock.h>
 #include <Resources/DirectoryManager.h>
 #include <Resources/File.h>
+#include <Resources/OpenGLES2Shader.h>
+#include <Resources/OpenGLESBuffer.h>
+#include <Resources/OpenGLESIndices.h>
 
 namespace OpenEngine {
 namespace Renderers {
 namespace OpenGLES2 {
     
-    using namespace Geometry;
     using namespace Display;
+    using namespace Geometry;
+    using namespace Resources;
     
     RenderingView::RenderingView() 
         : modelView(Matrix<4,4,float>()), 
           normalMatrix(modelView.GetInverse().GetTranspose()), 
           arg(NULL){
         lightRenderer = new LightRenderer();
+
+        // Load the über shaders
+                string filename = DirectoryManager::FindFileInPath("Shaders/ESUberShader.glsl");
+        ifstream* in = File::Open(filename);
+
+        char buf[255], file[255];
+        int line = 0;
+
+        string vertexFilename, fragFilename;
+        
+        while (!in->eof()) {
+            ++line;
+            in->getline(buf, 255);
+            
+            string type = string(buf,5);
+            if (type.empty() || buf[0] == '#')
+                continue;
+            
+            if (type == "vert:") {
+                if (sscanf(buf, "vert: %s", file) == 1)
+                    vertexFilename = string(file);                
+            } else if (type == "frag:")
+                if (sscanf(buf, "frag: %s", file) == 1)
+                    fragFilename = string(file);
+        }
+        
+        in->close();
+        delete in;
+
+        vertexFilename = DirectoryManager::FindFileInPath(vertexFilename);
+        char *vertShdr = File::ReadShader<char>(vertexFilename);
+        uberVert = string(vertShdr);
+
+        fragFilename = DirectoryManager::FindFileInPath(fragFilename);
+        char *fragShdr = File::ReadShader<char>(fragFilename);
+        uberFrag = string(fragShdr);
     }
     
     RenderingView::~RenderingView() {
@@ -175,40 +215,6 @@ namespace OpenGLES2 {
     RenderingView::MeshDecoration* RenderingView::DecorateMeshNode(MeshNode* node){
         logger.info << "Uh met a mesh node in need of decoration" << logger.end;
 
-        string filename = DirectoryManager::FindFileInPath("Shaders/ESUberShader.glsl");
-        ifstream* in = File::Open(filename);
-
-        char buf[255], file[255];
-        int line = 0;
-
-        string vertexFilename, fragFilename;
-        
-        while (!in->eof()) {
-            ++line;
-            in->getline(buf, 255);
-            
-            string type = string(buf,5);
-            if (type.empty() || buf[0] == '#')
-                continue;
-            
-            if (type == "vert:") {
-                if (sscanf(buf, "vert: %s", file) == 1)
-                    vertexFilename = string(file);                
-            } else if (type == "frag:")
-                if (sscanf(buf, "frag: %s", file) == 1)
-                    fragFilename = string(file);
-        }
-        
-        in->close();
-        delete in;
-
-        vertexFilename = DirectoryManager::FindFileInPath(vertexFilename);
-        char *vertShdr = File::ReadShader<char>(vertexFilename);
-        uberVert = string(vertShdr);
-
-        fragFilename = DirectoryManager::FindFileInPath(fragFilename);
-        char *fragShdr = File::ReadShader<char>(fragFilename);
-        uberFrag = string(fragShdr);
 
         MeshDecoration* deco = new MeshDecoration(new OpenGLES2Shader(uberVert, uberFrag));
         deco->shader->Load();

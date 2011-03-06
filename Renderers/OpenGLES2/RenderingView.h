@@ -12,12 +12,15 @@
 
 #include <Renderers/IRenderingView.h>
 #include <Meta/OpenGLES2.h>
-#include <Resources/OpenGLES2Shader.h>
 #include <Geometry/Mesh.h>
 #include <Geometry/GeometrySet.h>
 #include <Renderers/OpenGLES2/LightRenderer.h>
 
 namespace OpenEngine {
+    namespace Resources {
+        class OpenGLES2Shader;
+        class IBuffer;
+    }
 namespace Renderers {
 namespace OpenGLES2 {
     
