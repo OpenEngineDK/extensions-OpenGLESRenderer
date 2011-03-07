@@ -17,6 +17,10 @@
 #include <Renderers/OpenGLES2/LightRenderer.h>
 
 namespace OpenEngine {
+    namespace Geometry {
+        class NewGeometrySet;
+        class NewMesh;
+    }
     namespace Resources {
         class OpenGLES2Shader;
         class IBuffer;
@@ -54,15 +58,18 @@ public:
     void Handle(RenderingEventArg arg);
     void VisitTransformationNode(TransformationNode *node);
     void VisitMeshNode(MeshNode *node);
+    void VisitNewMeshNode(NewMeshNode *node);
     LightRenderer* GetLightRenderer() { return lightRenderer; }
 
 protected:
-    inline void ApplyMaterial(Geometry::MaterialPtr mat, OpenGLES2Shader* shader);
+    void ApplyMaterial(Geometry::MaterialPtr mat, OpenGLES2Shader* shader);
     void ApplyGeometrySet(GeometrySetPtr geom,OpenGLES2Shader* shader);
+    void ApplyGeometrySet(NewGeometrySet* geom, OpenGLES2Shader* shader);
     void ApplyMesh(Mesh* prim, OpenGLES2Shader* shader);
+    void ApplyMesh(NewMesh* prim, OpenGLES2Shader* shader);
     
     MeshDecoration* DecorateMeshNode(MeshNode* node);
-
+    MeshDecoration* DecorateMeshNode(NewMeshNode* node);
 };
 
 } // NS OpenGLES2

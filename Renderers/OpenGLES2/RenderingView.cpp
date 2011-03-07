@@ -1,9 +1,12 @@
 #include "RenderingView.h"
 
 #include <Logging/Logger.h>
+#include <Geometry/NewGeometrySet.h>
+#include <Geometry/NewMesh.h>
 #include <Scene/ISceneNode.h>
 #include <Scene/TransformationNode.h>
 #include <Scene/MeshNode.h>
+#include <Scene/NewMeshNode.h>
 #include <Display/IViewingVolume.h>
 #include <Resources/DataBlock.h>
 #include <Resources/DirectoryManager.h>
@@ -27,7 +30,7 @@ namespace OpenGLES2 {
         lightRenderer = new LightRenderer();
 
         // Load the über shaders
-                string filename = DirectoryManager::FindFileInPath("Shaders/ESUberShader.glsl");
+        string filename = DirectoryManager::FindFileInPath("Shaders/ESUberShader.glsl");
         ifstream* in = File::Open(filename);
 
         char buf[255], file[255];
@@ -89,7 +92,7 @@ namespace OpenGLES2 {
         if (geom == NULL) return;
 
         AttributeBlocks attrs = geom->GetAttributeLists();
-        AttributeBlocks::iterator attrItr = attrs.begin();
+        AttributeBlocks::const_iterator attrItr = attrs.begin();
         while (attrItr != attrs.end()){
             GLint loc = shader->GetAttributeID(attrItr->first);
             if (loc != -1){
@@ -102,16 +105,37 @@ namespace OpenGLES2 {
         }
     }
 
+    void RenderingView::ApplyGeometrySet(NewGeometrySet* geom, OpenGLES2Shader* shader) {
+        if (geom == NULL) return;
+        
+        AttributeLists::iterator itr = geom->Begin();
+        while (itr != geom->End()){
+            GLint loc = shader->GetAttributeID(itr->first);
+            if (loc != -1){
+                logger.info << "Apply buffer " << itr->first << logger.end;
+                IOpenGLESBuffer* tmp = dynamic_cast<IOpenGLESBuffer*>(itr->second);
+#ifdef OE_SAFE
+                if (tmp == NULL)
+                    throw Exception("MeshNode's resources not properly converted to OpenGLES resources.");
+#endif
+                tmp->Apply(loc);
+                glEnableVertexAttribArray(loc);
+            }
+            ++itr;
+        }
+    }
+
     void RenderingView::ApplyMaterial(MaterialPtr mat, OpenGLES2Shader* shader) {
         if (mat == NULL) return;
 
         GLint texUnit = 0;
 
         map<string, ITexture2DPtr> texs2D = mat->Get2DTextures();
-        map<string, ITexture2DPtr>::iterator itr = texs2D.begin();
+        map<string, ITexture2DPtr>::const_iterator itr = texs2D.begin();
         while (itr != texs2D.end()) {
             GLint loc = shader->GetUniformLocation(itr->first);
             if (loc != -1){
+                logger.info << "Apply texture " << itr->first << logger.end;
                 ITexture2DPtr tex = itr->second;
                 glActiveTexture(GL_TEXTURE0 + texUnit);
                 glBindTexture(GL_TEXTURE_2D, tex->GetID());
@@ -147,7 +171,6 @@ namespace OpenGLES2 {
         shader->SetUniform("proj_matrix", arg->canvas.GetViewingVolume()->GetProjectionMatrix());
         shader->SetUniform("mv_matrix",modelView);
         shader->SetUniform("norm_matrix",normalMatrix);
-        shader->SetUniform("useLight", 1);
 
         ApplyGeometrySet(prim->GetGeometrySet(), shader);
         ApplyMaterial(prim->GetMaterial(), shader);
@@ -159,12 +182,34 @@ namespace OpenGLES2 {
         GLuint offset = prim->GetIndexOffset();
         CHECK_FOR_GLES2_ERROR();
         
-        //logger.info << indexBuffer->ToString() << logger.end;
-          
-        //glDrawArrays(GL_TRIANGLES, 0, count);
-        //glDrawArrays(GL_LINE_STRIP, 0, count);
-        
         glDrawElements(type, count, GL_UNSIGNED_SHORT, indexBuffer->GetData() + offset);
+    }
+
+    void RenderingView::ApplyMesh(NewMesh* prim, OpenGLES2Shader* shader) {
+        if (prim == NULL) {
+            return;
+        }
+
+        shader->ApplyShader();
+        shader->SetUniform("proj_matrix", arg->canvas.GetViewingVolume()->GetProjectionMatrix());
+        shader->SetUniform("mv_matrix",modelView);
+        shader->SetUniform("norm_matrix",normalMatrix);
+
+        ApplyGeometrySet(prim->GetGeometrySet(), shader);
+        ApplyMaterial(prim->GetMaterial(), shader);
+
+        NewMesh::GeometricType type = prim->GetType();
+
+        IIndices* indices = prim->GetIndices();
+        IOpenGLESIndices* glIndices = dynamic_cast<IOpenGLESIndices*>(indices);
+        glIndices->Draw(type);
+
+        /*
+        NewMesh::GeometricType type = prim->GetType();
+        CHECK_FOR_GLES2_ERROR();
+        
+        glDrawElements(type, count, GL_UNSIGNED_SHORT, indexBuffer->GetData());
+        */
     }
     
     void RenderingView::VisitMeshNode(MeshNode *node) {
@@ -175,9 +220,24 @@ namespace OpenGLES2 {
         else
             deco = (MeshDecoration*) itr->second;
 
+        //ApplyDeco(*deco, *(deco->shader));
         ApplyMesh(node->GetMesh().get(), deco->shader);
+        CHECK_FOR_GLES2_ERROR();          
         node->VisitSubNodes(*this);
-        CHECK_FOR_GLES2_ERROR();                    
+    }
+
+    void RenderingView::VisitNewMeshNode(NewMeshNode *node) {
+        logger.info << "Visit new mesh node" << logger.end;
+        map<ISceneNode*, void*>::const_iterator itr = nodeDecorations.find(node);
+        MeshDecoration* deco;
+        if (itr == nodeDecorations.end())
+            deco = DecorateMeshNode(node);
+        else
+            deco = (MeshDecoration*) itr->second;
+
+        ApplyMesh(node->GetMesh().get(), deco->shader);
+        CHECK_FOR_GLES2_ERROR();          
+        node->VisitSubNodes(*this);
     }
 
     void RenderingView::Handle(RenderingEventArg arg) {
@@ -196,8 +256,6 @@ namespace OpenGLES2 {
                 Matrix<4,4,float> viewMatrix = viewingVolume->GetViewMatrix();
                 modelView = viewMatrix;
                 normalMatrix = viewMatrix.GetInverse().GetTranspose();
-                
-                //logger.info << projectionMatrix << logger.end;
             }
 
             arg.canvas.GetScene()->Accept(*this);
@@ -206,15 +264,13 @@ namespace OpenGLES2 {
         
         } else if (arg.renderer.GetCurrentStage() == IRenderer::RENDERER_INITIALIZE) {
             CHECK_FOR_GLES2_ERROR();
-
         }
     }
 
     /*** DECORATER METHODS ***/
     
     RenderingView::MeshDecoration* RenderingView::DecorateMeshNode(MeshNode* node){
-        logger.info << "Uh met a mesh node in need of decoration" << logger.end;
-
+        //logger.info << "Uh met a mesh node in need of decoration" << logger.end;
 
         MeshDecoration* deco = new MeshDecoration(new OpenGLES2Shader(uberVert, uberFrag));
         deco->shader->Load();
@@ -224,6 +280,16 @@ namespace OpenGLES2 {
         return deco;
     }
 
+    RenderingView::MeshDecoration* RenderingView::DecorateMeshNode(NewMeshNode* node){
+        //logger.info << "Uh met a mesh node in need of decoration" << logger.end;
+
+        MeshDecoration* deco = new MeshDecoration(new OpenGLES2Shader(uberVert, uberFrag));
+        deco->shader->Load();
+
+        nodeDecorations[node] = deco;
+
+        return deco;
+    }
 }
 }
 }
