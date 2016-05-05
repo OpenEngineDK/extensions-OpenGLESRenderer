@@ -1,10 +1,10 @@
 # OpenGLES renderer dependencies
 
-darcs /extensions/OpenGLESRenderer             http://openengine.dk/code/extensions/OpenGLESRenderer
-darcs /extensions/OpenGLESResources             http://openengine.dk/code/extensions/OpenGLESResources
+git /extensions/OpenGLESRenderer             https://github.com/OpenEngineDK/extensions-OpenGLESRenderer.git
+git /extensions/OpenGLESResources             https://github.com/OpenEngineDK/extensions-OpenGLESResources.git
 
-darcs-dev /extensions/OpenGLESRenderer         fh.daimi.au.dk:/users/cgd/code/extensions/OpenGLESRenderer
-darcs-dev /extensions/OpenGLESResources        fh.daimi.au.dk:/users/cgd/code/extensions/OpenGLESResources
+git-dev /extensions/OpenGLESRenderer         git@github.com:OpenEngineDK/extensions-OpenGLESRenderer.git
+git-dev /extensions/OpenGLESResources        git@github.com:OpenEngineDK/extensions-OpenGLESResources.git
 
 # extension data
 any /resources/ http://openengine.dk/data/extensions/OpenGLESRenderer/Shaders.zip
